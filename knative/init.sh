@@ -3,6 +3,7 @@
 set -eu
 # expected to run on Ubuntu 18.04
 # TODO move this to an Ansible script
+# TODO run shellcheck
 
 sudo apt-get install -y unzip tar btrfs-tools util-linux nfs-common ipvsadm socat conntrack ipset libseccomp2 # jq
 
@@ -12,7 +13,7 @@ sudo apt-get install -y unzip tar btrfs-tools util-linux nfs-common ipvsadm soca
 #####################################################################################################
 ARCH=$(arch)
 sudo sh -c "echo 'deb http://download.opensuse.org/repositories/home:/katacontainers:/releases:/${ARCH}:/master/xUbuntu_$(lsb_release -rs)/ /' > /etc/apt/sources.list.d/kata-containers.list"
-curl -sL  http://download.opensuse.org/repositories/home:/katacontainers:/releases:/${ARCH}:/master/xUbuntu_$(lsb_release -rs)/Release.key | sudo apt-key add -
+curl -sL "http://download.opensuse.org/repositories/home:/katacontainers:/releases:/${ARCH}:/master/xUbuntu_$(lsb_release -rs)/Release.key" | sudo apt-key add -
 sudo -E apt-get update
 sudo -E apt-get -y install kata-runtime kata-proxy kata-shim
 
@@ -52,7 +53,6 @@ sudo -E modprobe ip_vs
 sudo -E modprobe br_netfilter
 sudo -E modprobe nf_conntrack_ipv4
 
-
 echo "ip_vs_rr" | sudo tee -a /etc/modules
 echo "ip_vs_wrr" | sudo tee -a /etc/modules
 echo "ip_vs_sh" | sudo tee -a /etc/modules
@@ -67,8 +67,8 @@ echo '1' | sudo tee -a /proc/sys/net/ipv6/conf/default/disable_ipv6
 echo '1' | sudo tee -a /proc/sys/net/ipv6/conf/all/disable_ipv6
 
 sudo sh -c 'cat <<EOF >> /etc/sysctl.conf
-net.ipv6.conf.all.disable_ipv6=1
-net.ipv6.conf.default.disable_ipv6=1
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
 EOF'
 
 #################################################################
@@ -107,7 +107,7 @@ kubeletConfiguration:
 networking:
     serviceSubnet: "10.96.0.0/16"
     dnsDomain: "cluster.local"
-    podSubnet: "192.168.0.0/16"
+    podSubnet: "172.16.0.0/12"
 nodeRegistration:
     criSocket: unix:///run/containerd/containerd.sock
     container-runtime: remote
@@ -123,9 +123,9 @@ sudo kubeadm init --config /etc/kubernetes/kubeadm.yaml --skip-token-print
 #
 ######
 
-mkdir -p ${HOME}/.kube
-sudo cp -i /etc/kubernetes/admin.conf ${HOME}/.kube/config
-sudo chown $(whoami) ${HOME}/.kube/config
+mkdir -p "${HOME}/.kube"
+sudo cp -i /etc/kubernetes/admin.conf "${HOME}/.kube/config"
+sudo chown "$(whoami)" "${HOME}/.kube/config"
 
 # Remove master taint because we only have one master :)
 kubectl taint node node-role.kubernetes.io/master- --all
@@ -136,7 +136,8 @@ kubectl taint node node-role.kubernetes.io/master- --all
 ###
 
 kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
-kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
+# Replace Pod CIDR
+curl -sL https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml | sed -e 's#192.168.0.0\/16#172.16.0.0\/12#g' | kubectl apply -f -
 
 ##
 # Knative
@@ -144,4 +145,16 @@ kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/
 ###
 
 kubectl apply --filename https://raw.githubusercontent.com/knative/serving/v0.2.1/third_party/istio-1.0.2/istio.yaml
+kubectl label namespace default istio-injection=enabled
 kubectl apply --filename https://github.com/knative/serving/releases/download/v0.2.1/release.yaml
+
+
+
+
+
+
+
+
+### clean up
+
+sudo kubeadm reset  --cri-socket unix:///run/containerd/containerd.sock
