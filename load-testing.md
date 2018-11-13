@@ -10,5 +10,6 @@ rm -f vegeta.tar.gz LICENSE README.md CHANGELOG
 ```
 
 ```bash
-echo "GET http://${IP_ADDRESS}/" | vegeta attack --header "Host: ${HOST_URL}" -duration=5s
+echo "GET http://${IP_ADDRESS}/" | vegeta attack --header "Host: ${HOST_URL}" -duration=5s --rate=400 > result.bin
+vegeta report result.bin
 ```
