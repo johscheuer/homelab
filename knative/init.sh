@@ -71,6 +71,9 @@ net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
 EOF'
 
+# Reboot is requiered after this step
+echo 'options kvm-intel nested=y enable_apicv=n' | sudo tee -a /etc/modprobe.d/qemu-system-x86.conf
+
 #################################################################
 # Install kubeadm, kubelet, kubectl                             #
 # https://kubernetes.io/docs/setup/independent/install-kubeadm/ #
@@ -148,13 +151,6 @@ kubectl apply --filename https://raw.githubusercontent.com/knative/serving/v0.2.
 kubectl label namespace default istio-injection=enabled
 kubectl apply --filename https://github.com/knative/serving/releases/download/v0.2.1/release.yaml
 
-
-
-
-
-
-
-
-### clean up
+### clean up kubeadm
 
 sudo kubeadm reset  --cri-socket unix:///run/containerd/containerd.sock
