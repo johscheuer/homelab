@@ -72,6 +72,8 @@ User=node_exporter
 Group=node_exporter
 Type=simple
 ExecStart=/usr/local/bin/node_exporter
+Restart=on-failure
+RestartSec=5s
 
 [Install]
 WantedBy=multi-user.target
@@ -92,6 +94,8 @@ ExecStart=/usr/local/bin/prometheus \
     --config.file /etc/prometheus/prometheus.yml \
     --storage.tsdb.path /var/lib/prometheus/ \
     --storage.tsdb.retention 4w
+Restart=on-failure
+RestartSec=5s
 
 [Install]
 WantedBy=multi-user.target
@@ -115,6 +119,10 @@ scrape_configs:
     scrape_interval: 30s
     static_configs:
       - targets: ['localhost:8080']
+  - job_name: 'pihole_exporter'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['localhost:9311']
 EOF
 
 sudo systemctl daemon-reload
@@ -160,6 +168,8 @@ User=dht22_exporter
 Group=dht22_exporter
 Type=simple
 ExecStart=/usr/local/bin/dht22-exporter
+Restart=on-failure
+RestartSec=5s
 
 [Install]
 WantedBy=multi-user.target
@@ -168,6 +178,37 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl start dht22_exporter
 sudo systemctl enable dht22_exporter
+```
+
+## Pihole exporter
+
+```bash
+go get github.com/nlamirault/pihole_exporter
+go install github.com/nlamirault/pihole_exporter
+sudo cp ~/go/bin/pihole_exporter /usr/local/bin/
+
+sudo useradd --no-create-home --shell /bin/false pihole_exporter
+sudo tee /etc/systemd/system/pihole_exporter.service <<EOF
+[Unit]
+Description=https://github.com/nlamirault/pihole_exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=pihole_exporter
+Group=pihole_exporter
+Type=simple
+ExecStart=/usr/local/bin/pihole_exporter -pihole 'http://192.168.178.48'
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl start pihole_exporter
+sudo systemctl enable pihole_exporter
 ```
 
 # ToDo
