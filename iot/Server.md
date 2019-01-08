@@ -123,6 +123,10 @@ scrape_configs:
     scrape_interval: 30s
     static_configs:
       - targets: ['localhost:9311']
+  - job_name: 'hue_exporter'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['localhost:9366']
 EOF
 
 sudo systemctl daemon-reload
@@ -198,7 +202,7 @@ After=network-online.target
 User=pihole_exporter
 Group=pihole_exporter
 Type=simple
-ExecStart=/usr/local/bin/pihole_exporter -pihole 'http://192.168.178.48'
+ExecStart=/usr/local/bin/pihole_exporter -pihole 'http://<redacted>'
 Restart=on-failure
 RestartSec=5s
 
@@ -209,6 +213,63 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl start pihole_exporter
 sudo systemctl enable pihole_exporter
+```
+
+## Hue exporter
+
+Install the binary
+
+```bash
+curl -sLO https://github.com/mitchellrj/hue_exporter/releases/download/v0.2.1/hue_exporter.arm7
+sudo mv hue_exporter.arm7 /usr/local/bin/hue_exporter
+chmod +x /usr/local/bin/hue_exporter
+```
+
+Fetch the API key:
+
+```bash
+export HUE_IP=...
+curl --data "{\"devicetype\": \"hue_exporter#hue_exporter\"}" "http://${HUE_IP}/api"
+..
+```
+
+Create the systemd unit:
+
+```bash
+sudo useradd --no-create-home --shell /bin/false hue_exporter
+sudo mkdir -p /etc/hue_exporter
+export HUE_IP=<redacted>
+export API_KEY=<redacted>
+sudo tee /etc/hue_exporter/hue_exporter.yml <<EOF
+ip_address: ${HUE_IP}
+api_key: "${API_KEY}"
+sensors:
+  match_names: true
+  ignore_types:
+  - CLIPGenericStatus
+EOF
+
+sudo tee /etc/systemd/system/hue_exporter.service <<EOF
+[Unit]
+Description=https://github.com/mitchellrj/hue_exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=hue_exporter
+Group=hue_exporter
+Type=simple
+ExecStart=/usr/local/bin/hue_exporter --config.file /etc/hue_exporter/hue_exporter.yml --listen.address :9366
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl start hue_exporter
+sudo systemctl enable hue_exporter
 ```
 
 # ToDo
