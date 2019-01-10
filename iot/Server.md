@@ -272,6 +272,53 @@ sudo systemctl start hue_exporter
 sudo systemctl enable hue_exporter
 ```
 
+## morningpaper2remarkable
+
+```bash
+go get https://github.com/jessfraz/morningpaper2remarkable
+sudo useradd --no-create-home --shell /bin/false remarkable
+sudo mkdir -p /etc/remarkable
+
+# We need to register the app once
+sudo mv ./morningpaper2remarkable /usr/local/bin/morningpaper2remarkable
+sudo -u remarkable morningpaper2remarkable --once
+
+sudo tee /etc/systemd/system/remarkable.service <<EOF
+[Unit]
+Description=https://github.com/jessfraz/morningpaper2remarkable
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+WorkingDirectory=/home/remarkable
+User=remarkable
+Group=remarkable
+Type=simple
+ExecStart=/usr/local/bin/morningpaper2remarkable --once --debug
+Restart=no
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo tee /etc/systemd/system/remarkable.timer <<EOF
+[Unit]
+Description=Run remarkable daily and on boot
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=1d
+
+[Install]
+WantedBy=timers.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl start remarkable
+sudo systemctl enable remarkable
+```
+
+
 # ToDo
 
 - DNS discovery (PoC)
