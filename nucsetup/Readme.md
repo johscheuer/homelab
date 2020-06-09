@@ -167,18 +167,18 @@ We have the following dev setup:
 
 | name | vCPU | RAM | root disk | data disk |
 |:-:|:-:|---|---|---|
-| master | 1 | 4GB | 20GB | - |
+| master | 2 | 4GB | 20GB | - |
 | worker-0 | 2 | 8GB | 20GB | 80GB |
 | worker-1 | 2 | 8GB | 20GB | 80GB |
 | worker-2 | 2 | 8GB | 20GB | 80GB |
-| total | 7 | 28GB | 80GB | 240GB (320GB total with root) |
+| total | 8 | 28GB | 80GB | 240GB (320GB total with root) |
 
 BaseOS will be Ubuntu focal (20.04) for all machines (maybe I change this later on to something different)
 
---> Setup with Ansible
---> how to access machines -> jumphost nuc?
-
 ### Networking
+
+TODO: setup IPv6
+-> document IP setup
 
 - https://www.berrange.com/posts/2011/06/16/providing-ipv6-connectivity-to-virtual-guests-with-libvirt-and-kvm/
 - https://libvirt.org/formatnetwork.html
@@ -188,6 +188,7 @@ BaseOS will be Ubuntu focal (20.04) for all machines (maybe I change this later 
 Kubernetes DualStack + Endpoint Slices
 
 host -> 172.16.0.0/24
+-> how to access from outside (ssh tunnel?)
 
 ### Cluster Setup
 
@@ -196,13 +197,9 @@ host -> 172.16.0.0/24
 --> Dualstack
 --> Storage rook.io (Ceph)
 
-
 ## TODO
- - python
- - qemu-guest-agent
 
--> add public key auth
--> check to run as non root user
--> https://cloudinit.readthedocs.io/en/latest/topics/examples.html
 -> https://libvirt.org/drvqemu.html
 -> take a look at: https://github.com/kimchi-project/kimchi
+-> https://johnsiu.com/blog/macos-kvm-remote-connect/
+-> `LIBVIRT_DEFAULT_URI='qemu:///system'`
