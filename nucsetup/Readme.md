@@ -2,9 +2,70 @@
 
 ## Base OS
 
-Ubuntu focal (20.04):
+Ubuntu focal (20.04).
 
-- ..
+### Requirements
+
+Install [unattended-upgrades](https://help.ubuntu.com/community/AutomaticSecurityUpdates):
+
+```bash
+sudo apt install unattended-upgrades
+```
+
+(Optional) Install [img](https://github.com/genuinetools/img/releases/download):
+
+```bash
+sudo apt install uidmap libseccomp-dev
+
+curl -sLO https://github.com/genuinetools/img/releases/download/v0.5.7/img-linux-amd64
+chmod +x img-linux-amd64
+sudo mv img-linux-amd64 /usr/local/bin/img
+```
+
+### Remote unlock LUKS
+
+For more details see [this blog post](https://hamy.io/post/0009/how-to-install-luks-encrypted-ubuntu-18.04.x-server-and-enable-remote-unlocking).
+
+```bash
+sudo apt-get -y install dropbear-initramfs
+```
+
+Add some sane options for dropbear:
+
+```bash
+sudo sed -i s/#DROPBEAR_OPTIONS=.*/DROPBEAR_OPTIONS='"-s -j -k -I 60"'/ /etc/dropbear-initramfs/config
+```
+
+Copy the authorized ssh keys (I assume you logged in once over ssh):
+
+```bash
+sudo cp .ssh/authorized_keys /etc/dropbear-initramfs/authorized_keys
+```
+
+In order to limit the ssh to only unlock the luks I prefixed the entries with:
+
+```bash
+no-port-forwarding,no-agent-forwarding,no-x11-forwarding,command="/bin/cryptroot-unlock"
+```
+
+In te end generate the new initramfs:
+
+```bash
+sudo update-initramfs -u
+```
+
+Now we can unlock luks with: `ssh root@192.168.0.25`.
+
+In order to prevent the `Host key verification failed` error we can add the following block to the ssh config:
+
+```bash
+Host 192.168.0.25
+   StrictHostKeyChecking no
+   IdentityFile ~/.ssh/id_rsa
+   IdentitiesOnly yes
+```
+
+--> https://www.intel.de/content/www/de/de/support/articles/000027615/intel-nuc.html
 
 ### Setup wireless network
 
@@ -177,18 +238,22 @@ BaseOS will be Ubuntu focal (20.04) for all machines (maybe I change this later 
 
 ### Networking
 
-TODO: setup IPv6
--> document IP setup
+Host Networks:
 
-- https://www.berrange.com/posts/2011/06/16/providing-ipv6-connectivity-to-virtual-guests-with-libvirt-and-kvm/
-- https://libvirt.org/formatnetwork.html
-- https://wiki.gentoo.org/wiki/QEMU/KVM_IPv6_Support
-- https://en.wikibooks.org/wiki/OpenSSH/Cookbook/Proxies_and_Jump_Hosts
+- IPv4: `172.16.0.0/24`
+- IPv6: `fd4a:fc40:8cfb::/64`
 
-Kubernetes DualStack + Endpoint Slices
+Service Networks:
 
-host -> 172.16.0.0/24
--> how to access from outside (ssh tunnel?)
+-
+-
+
+Pod Networks:
+
+-
+-
+
+Kubernetes DualStack + Endpoint Slices -> https://www.linkedin.com/pulse/how-enable-ipv6-kubernetes-cluster-ahmed-el-fakharany/
 
 ### Cluster Setup
 
@@ -197,9 +262,15 @@ host -> 172.16.0.0/24
 --> Dualstack
 --> Storage rook.io (Ceph)
 
-## TODO
+## Further reading
 
--> https://libvirt.org/drvqemu.html
--> take a look at: https://github.com/kimchi-project/kimchi
--> https://johnsiu.com/blog/macos-kvm-remote-connect/
--> `LIBVIRT_DEFAULT_URI='qemu:///system'`
+- [macos-kvm-remote-connect](https://johnsiu.com/blog/macos-kvm-remote-connect)
+
+
+- name: CALICO_IPV6POOL_NAT_OUTGOING
+              value: "true"
+
+https://github.com/talos-systems/talos/tree/master/hack/test/libvirt
+
+
+-> https://github.com/talos-systems/talos/issues/2101

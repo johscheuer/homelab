@@ -44,6 +44,7 @@ resource "libvirt_volume" "worker_data" {
 // FIXME: auto bootstrap Kubernetes cluster with kubeadm file
 // FIXME: https://github.com/inovex/kubernetes-on-openstack/blob/master/scripts/master.cfg.tpl#L837
 // FIXME: unattended upgrades: https://www.brightbox.com/docs/guides/unattended-upgrades/
+// FIXME: https://cloudinit.readthedocs.io/en/latest/topics/modules.html#set-hostname
 data "template_file" "user_data" {
   template = <<EOF
 #cloud-config

@@ -17,7 +17,7 @@ resource "libvirt_network" "kube_network" {
   # also derived to define the host addresses
   # also derived to define the addresses served by the DHCP server
   # IPv6 ULA address: https://tools.ietf.org/html/rfc4193
-  addresses = ["172.16.0.0/24"] //FIXME: check IPv6 support!, "fd4a:fc40:8cfb::1/64"]
+  addresses = ["172.16.0.0/24", "fd4a:fc40:8cfb::1/64"]
 
   # (optional) the bridge device defines the name of a bridge device
   # which will be used to construct the virtual network.
