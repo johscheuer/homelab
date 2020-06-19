@@ -19,11 +19,3 @@ tar xfJ linux-4.19.4.tar.xz
 ```
 
 And jump into the newly created directory `cd linux-4.19.4` and configure the Linux Kernel modules `cp /boot/config-$(uname -r) .config`. Now you can run `make`  after answering all these questions run `make modules_install`.
-
-
-
-
-# Source
-
-- https://www.linux.com/learn/intro-to-linux/2018/4/how-compile-linux-kernel-0
-- https://debian-handbook.info/browse/de-DE/stable/sect.kernel-compilation.html

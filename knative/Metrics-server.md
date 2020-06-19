@@ -21,7 +21,3 @@ Add the following part to the `metrics-server-deployment.yaml` file under `eploy
         args:
         - --kubelet-insecure-tls
 ```
-
-## Setup Metrics Server (Quick Way)
-
-generate CA ?

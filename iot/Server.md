@@ -318,8 +318,7 @@ sudo systemctl start remarkable
 sudo systemctl enable remarkable
 ```
 
-
-# ToDo
+## ToDo
 
 - DNS discovery (PoC)
 - TimescaleDB for Prometheus
