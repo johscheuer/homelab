@@ -56,9 +56,9 @@ packages:
   - apt-transport-https
   - util-linux
   - kubernetes-cni
-  - [kubelet, "1.18.3-00"]
-  - [kubeadm, "1.18.3-00"]
-  - [kubectl, "1.18.3-00"]
+  - [kubelet, "1.18.4-00"]
+  - [kubeadm, "1.18.4-00"]
+  - [kubectl, "1.18.4-00"]
   - jq
   - socat
   - conntrack
@@ -66,16 +66,22 @@ packages:
   - libseccomp2
   - containerd
   - chrony
+  - unattended-upgrades
 
 write_files:
 - content: |
     net.ipv4.ip_forward = 1
+    net.ipv6.ip_forward = 1
     net.bridge.bridge-nf-call-ip6tables = 1
     net.bridge.bridge-nf-call-iptables = 1
   path: /etc/sysctl.d/k8s.conf
 - content: |
     br_netfilter
   path: /etc/modules-load.d/k8s.conf
+- content: |
+    runtime-endpoint: unix:///var/run/containerd/containerd.sock
+    image-endpoint: unix:///var/run/containerd/containerd.sock
+  path: /etc/crictl.yaml
 
 apt:
   preserve_sources_list: true

@@ -14,7 +14,35 @@ BaseOS will be Ubuntu focal (20.04) for all machines (maybe I change this later 
 
 ## Setup
 
+Before we can start we need to setup the VM's:
+
+```bash
+pushd ./kubernetes-tf
+terraform apply
+```
+
+Now we can take the output as input for the ansible inventory:
+
+```bash
+# TODO test ansible with IPv6 and add groups
+echo '[master]' > ../inventory/kube-dev
+terraform output --json  master_ip | jq -r '.[][] | select(startswith("172")) + " ansible_user=ubuntu"' >> ../inventory/kube-dev
+echo '[worker]' >> ../inventory/kube-dev
+terraform output --json  worker_ips | jq -r '.[][] | select(startswith("172")) + " ansible_user=ubuntu"' >> ../inventory/kube-dev
+popd
+```
+
+Check if all nodes are reachable:
+
+```bas
+ansible --ssh-common-args='-J jscheuermann@192.168.0.242' -i inventory/kube-dev all -m ping
+```
+
+Finally we can provision the Kubernetes cluster with [Ansible](https://docs.ansible.com):
+
+```bash
 TBD
+```
 
 ## Networking
 
@@ -33,13 +61,19 @@ Pod Networks:
 -
 -
 
-Kubernetes DualStack + Endpoint Slices -> https://www.linkedin.com/pulse/how-enable-ipv6-kubernetes-cluster-ahmed-el-fakharany/
 
 ## Cluster Setup
 
-TBD
+TBD -> setup with ansible (initial setup)
 
 --> metallb + ingress
 --> Prometheus
 --> Dualstack
 --> Storage rook.io (Ceph)
+
+## Testing
+
+```bash
+sudo ip6tables -vL KUBE-SERVICES
+
+```
