@@ -118,6 +118,17 @@ network:
 
 Apply the config: `sudo netplan --debug apply` and reload the systemd unit: `sudo systemctl daemon-reload` and finally restart the service: `sudo systemctl restart netplan-wpa-wlp58s0.service` and check that the network is up: `sudo systemctl status netplan-wpa-wlp58s0.service`
 
+### IPv6 router advertisements
+
+If you want to use IPv6 [stateless address autoconfiguration (slaac)](https://en.wikipedia.org/wiki/IPv6_address#Stateless_address_autoconfiguration) on the host and also run some virtual machines you need to modify the [accept_ra](https://www.kernel.org/doc/Documentation/networking/ip-sysctl.txt) value to `2`:
+
+```bash
+sudo tee /etc/sysctl.d/ipv6.conf <<< 'net.ipv6.conf.eno1.accept_ra = 2
+net.ipv6.conf.wlp58s0.accept_ra = 2'
+```
+
+In order to take direct effect run `sysctl --system`
+
 ## Setup libvirt
 
 See also: [KVM Ubuntu](https://help.ubuntu.com/community/KVM/Installation#Installation):
