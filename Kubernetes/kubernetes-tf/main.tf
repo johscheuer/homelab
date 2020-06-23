@@ -39,112 +39,33 @@ resource "libvirt_volume" "worker_data" {
   size = 85899345920
 }
 
-// https://cloudinit.readthedocs.io/en/latest/topics/examples.html
 // FIXME: (add as variable): kubernetes_version
-// FIXME: auto bootstrap Kubernetes cluster with kubeadm file
 // FIXME: https://github.com/inovex/kubernetes-on-openstack/blob/master/scripts/master.cfg.tpl#L837
-// FIXME: unattended upgrades: https://www.brightbox.com/docs/guides/unattended-upgrades/
-// FIXME: https://cloudinit.readthedocs.io/en/latest/topics/modules.html#set-hostname
-data "template_file" "user_data" {
-  template = <<EOF
-#cloud-config
-repo_update: true
-repo_upgrade: all
-package_upgrade: true
-
-packages:
-  - apt-transport-https
-  - util-linux
-  - kubernetes-cni
-  - [kubelet, "1.18.4-00"]
-  - [kubeadm, "1.18.4-00"]
-  - [kubectl, "1.18.4-00"]
-  - jq
-  - socat
-  - conntrack
-  - ipset
-  - libseccomp2
-  - containerd
-  - chrony
-  - unattended-upgrades
-
-write_files:
-- content: |
-    net.ipv4.ip_forward = 1
-    net.ipv6.ip_forward = 1
-    net.bridge.bridge-nf-call-ip6tables = 1
-    net.bridge.bridge-nf-call-iptables = 1
-  path: /etc/sysctl.d/k8s.conf
-- content: |
-    br_netfilter
-  path: /etc/modules-load.d/k8s.conf
-- content: |
-    runtime-endpoint: unix:///var/run/containerd/containerd.sock
-    image-endpoint: unix:///var/run/containerd/containerd.sock
-  path: /etc/crictl.yaml
-
-apt:
-  preserve_sources_list: true
-  sources:
-    kubernetes.list:
-      source: "deb http://apt.kubernetes.io/ kubernetes-xenial main"
-      key: |
-        -----BEGIN PGP PUBLIC KEY BLOCK-----
-        Version: GnuPG v1
-
-        mQENBFrBaNsBCADrF18KCbsZlo4NjAvVecTBCnp6WcBQJ5oSh7+E98jX9YznUCrN
-        rgmeCcCMUvTDRDxfTaDJybaHugfba43nqhkbNpJ47YXsIa+YL6eEE9emSmQtjrSW
-        IiY+2YJYwsDgsgckF3duqkb02OdBQlh6IbHPoXB6H//b1PgZYsomB+841XW1LSJP
-        YlYbIrWfwDfQvtkFQI90r6NknVTQlpqQh5GLNWNYqRNrGQPmsB+NrUYrkl1nUt1L
-        RGu+rCe4bSaSmNbwKMQKkROE4kTiB72DPk7zH4Lm0uo0YFFWG4qsMIuqEihJ/9KN
-        X8GYBr+tWgyLooLlsdK3l+4dVqd8cjkJM1ExABEBAAG0QEdvb2dsZSBDbG91ZCBQ
-        YWNrYWdlcyBBdXRvbWF0aWMgU2lnbmluZyBLZXkgPGdjLXRlYW1AZ29vZ2xlLmNv
-        bT6JAT4EEwECACgFAlrBaNsCGy8FCQWjmoAGCwkIBwMCBhUIAgkKCwQWAgMBAh4B
-        AheAAAoJEGoDCyG6B/T78e8H/1WH2LN/nVNhm5TS1VYJG8B+IW8zS4BqyozxC9iJ
-        AJqZIVHXl8g8a/Hus8RfXR7cnYHcg8sjSaJfQhqO9RbKnffiuQgGrqwQxuC2jBa6
-        M/QKzejTeP0Mgi67pyrLJNWrFI71RhritQZmzTZ2PoWxfv6b+Tv5v0rPaG+ut1J4
-        7pn+kYgtUaKdsJz1umi6HzK6AacDf0C0CksJdKG7MOWsZcB4xeOxJYuy6NuO6Kcd
-        Ez8/XyEUjIuIOlhYTd0hH8E/SEBbXXft7/VBQC5wNq40izPi+6WFK/e1O42DIpzQ
-        749ogYQ1eodexPNhLzekKR3XhGrNXJ95r5KO10VrsLFNd8I=
-        =TKuP
-        -----END PGP PUBLIC KEY BLOCK-----
-
-disable_root: 0
-ssh_pwauth: true
-chpasswd:
-  list: |
-     root:password
-  expire: False
-users:
-  - name: root
-    ssh-authorized-keys:
-      - ${file(pathexpand("~/.ssh/id_rsa.pub"))}
-  - name: ubuntu
-    sudo: ALL=(ALL) NOPASSWD:ALL
-    gecos: ubuntu
-    groups: [adm, audio, cdrom, dialout, floppy, video, plugdev, dip, netdev]
-    shell: /bin/bash
-    ssh-authorized-keys:
-      - ${file(pathexpand("~/.ssh/id_rsa.pub"))}
-growpart:
-  mode: auto
-  devices: ['/']
-
-runcmd:
-- "systemctl restart systemd-modules-load.service"
-- "sysctl --system"
-EOF
+data "template_file" "master_user_data" {
+  template = "${file("${path.module}/cloud_init.yml")}"
+    vars = {
+      hostname = "master"
+  }
 }
 
-data "template_file" "network_config" {
-  template = file("${path.module}/network_config.cfg")
+data "template_file" "worker_user_data" {
+  count = 3
+  template = "${file("${path.module}/cloud_init.yml")}"
+  vars = {
+    hostname = "worker-${count.index}"
+  }
 }
 
-# for more info about paramater check this out
-resource "libvirt_cloudinit_disk" "commoninit" {
-  name           = "commoninit.iso"
-  user_data      = data.template_file.user_data.rendered
-  network_config = data.template_file.network_config.rendered
+resource "libvirt_cloudinit_disk" "master_commoninit" {
+  name           = "master_commoninit.iso"
+  user_data      = data.template_file.master_user_data.rendered
+  pool           = libvirt_pool.kubernetes.name
+}
+
+resource "libvirt_cloudinit_disk" "worker_commoninit" {
+  count = 3
+  name           = "worker_${count.index}_commoninit.iso"
+  user_data      = element(data.template_file.worker_user_data.*.rendered, count.index)
   pool           = libvirt_pool.kubernetes.name
 }
 
@@ -156,7 +77,7 @@ resource "libvirt_domain" "master" {
   qemu_agent = true
   autostart  = true
 
-  cloudinit = libvirt_cloudinit_disk.commoninit.id
+  cloudinit = libvirt_cloudinit_disk.master_commoninit.id
 
   network_interface {
     network_name   = libvirt_network.kube_network.name
@@ -198,7 +119,7 @@ resource "libvirt_domain" "worker" {
   count     = 3
   autostart = true
 
-  cloudinit = libvirt_cloudinit_disk.commoninit.id
+  cloudinit = element(libvirt_cloudinit_disk.worker_commoninit.*.id, count.index)
 
   disk {
     volume_id = element(libvirt_volume.worker.*.id, count.index)

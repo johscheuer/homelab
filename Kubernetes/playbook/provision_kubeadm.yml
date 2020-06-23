@@ -1,0 +1,94 @@
+- name: Initialize Kubbernetes master
+  hosts: master
+  tasks:
+  - name: Create kubeadm directory for config
+    become: yes
+    file:
+      path: /etc/kubeadm/
+      state: directory
+      owner: ubuntu
+      group: ubuntu
+      mode: '0700'
+
+  - name: Template a kubeadm config
+    template:
+      src: kubeadm.yml.j2
+      dest: /etc/kubeadm/kubeadm.yml
+      owner: ubuntu
+      group: ubuntu
+      mode: '0600'
+
+  - name: Check if cluster is already provisioned
+    become: yes
+    shell: kubeadm config view
+    # We expect this task to fail in the first run
+    ignore_errors: yes
+    register: kubeadm_config
+
+  - name: Run kubeadm init
+    become: yes
+    shell: kubeadm init --config /etc/kubeadm/kubeadm.yml
+    register: kubeadm
+    when: kubeadm_config.rc != 0
+
+  # TODO check why ansible still runs these tasks if the config check returns a none zero
+  - name: Set token for join command
+    set_fact:
+      token: "{{ item }}"
+    with_items: "{{ kubeadm.stdout | regex_search('token (.*\\w)', multiline=True, ignorecase=True) | regex_replace('token ') }}"
+    when: kubeadm_config.rc != 0
+
+  - name: Set ca-cert-hash for join command
+    set_fact:
+      ca_hash: "{{ item }}"
+    with_items: "{{ kubeadm.stdout | regex_search('discovery-token-ca-cert-hash (.*\\w)', multiline=True, ignorecase=True) | regex_replace('discovery-token-ca-cert-hash ') }}"
+    when: kubeadm_config.rc != 0
+
+  - name: Set API server
+    set_fact:
+      api_server: "{{ item }}"
+    with_items: "{{ kubeadm.stdout | regex_search('(\\d{0,3}\\.\\d{0,3}.\\d{0,3}.\\d{0,3}:\\d{4})') }}"
+    when: kubeadm_config.rc != 0
+
+  - local_action:
+      module: copy
+      content: |
+        api_server: "{{ api_server }}"
+        ca_hash: "{{ ca_hash }}"
+        token: "{{ token }}"
+      dest: ./vars/kubeadm.yml
+
+  - name: Create .kube directory for kubeconfig
+    file:
+      path: /home/ubuntu/.kube
+      state: directory
+      owner: ubuntu
+      group: ubuntu
+      mode: '0775'
+
+# TODO copy kubeconfig locally
+  - name: Copy admin.conf to local user
+    become: yes
+    copy:
+      src: /etc/kubernetes/admin.conf
+      dest: /home/ubuntu/.kube/config
+      owner: ubuntu
+      group: ubuntu
+      mode: '0500'
+      remote_src: yes
+
+# TODO setup network (calico)
+
+
+# TODO setup/join worker nodes
+- name: Initialize Kubbernetes worker
+  hosts: worker
+  tasks:
+  # TODO can we identify if the already have joined?
+  - name: Load variables
+    include_vars: ./vars/kubeadm.yml
+
+  - name: Run kubeadm join
+    become: yes
+    shell: kubeadm join {{ api_server }} --token {{ token }} --discovery-token-ca-cert-hash {{ ca_hash }}
+    #when: kubeadm_config.rc != 0

@@ -127,6 +127,8 @@ sudo tee /etc/sysctl.d/ipv6.conf <<< 'net.ipv6.conf.eno1.accept_ra = 2
 net.ipv6.conf.wlp58s0.accept_ra = 2'
 ```
 
+TODO check after reboot -> /etc/sysctl.d/ipv6.conf
+
 In order to take direct effect run `sysctl --system`
 
 ## Setup libvirt

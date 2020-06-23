@@ -26,22 +26,22 @@ Now we can take the output as input for the ansible inventory:
 ```bash
 # TODO test ansible with IPv6 and add groups
 echo '[master]' > ../inventory/kube-dev
-terraform output --json  master_ip | jq -r '.[][] | select(startswith("172")) + " ansible_user=ubuntu"' >> ../inventory/kube-dev
+terraform output --json master_ip | jq -r '.[][] | select(startswith("172")) + " ansible_user=ubuntu"' >> ../inventory/kube-dev
 echo '[worker]' >> ../inventory/kube-dev
-terraform output --json  worker_ips | jq -r '.[][] | select(startswith("172")) + " ansible_user=ubuntu"' >> ../inventory/kube-dev
+terraform output --json worker_ips | jq -r '.[][] | select(startswith("172")) + " ansible_user=ubuntu"' >> ../inventory/kube-dev
 popd
 ```
 
 Check if all nodes are reachable:
 
 ```bas
-ansible --ssh-common-args='-J jscheuermann@192.168.0.242' -i inventory/kube-dev all -m ping
+ansible --ssh-common-args='-J jscheuermann@192.168.0.242' -i ./inventory/kube-dev all -m ping
 ```
 
 Finally we can provision the Kubernetes cluster with [Ansible](https://docs.ansible.com):
 
 ```bash
-TBD
+ansible-playbook  --ssh-common-args='-J jscheuermann@192.168.0.242' -i ./inventory/kube-dev ./playbook/provision_kubeadm.yml
 ```
 
 ## Networking
@@ -51,20 +51,22 @@ Host Networks:
 - IPv4: `172.16.0.0/24`
 - IPv6: `fd4a:fc40:8cfb::/64`
 
-Service Networks:
+Service Networks (Kubernetes currently doesn't support `/64`):
 
--
--
+- IPv4: `10.96.0.0/12`
+- IPv6: `fd99:fe56:7891:2f3a::/112`
 
 Pod Networks:
 
--
--
+- IPv4: `192.168.0.0/16`
+- IPv6: `fd44:fe56:7891:2f3a::/64`
 
+*TODO*: we also activate endpoint slices for internal usage.
 
 ## Cluster Setup
 
 TBD -> setup with ansible (initial setup)
+
 
 --> metallb + ingress
 --> Prometheus
