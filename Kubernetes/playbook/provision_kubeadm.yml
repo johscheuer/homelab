@@ -77,10 +77,8 @@
       mode: '0500'
       remote_src: yes
 
-# TODO setup network (calico)
+# TODO setup network (calico) copy + apply
 
-
-# TODO setup/join worker nodes
 - name: Initialize Kubbernetes worker
   hosts: worker
   tasks:
@@ -91,4 +89,3 @@
   - name: Run kubeadm join
     become: yes
     shell: kubeadm join {{ api_server }} --token {{ token }} --discovery-token-ca-cert-hash {{ ca_hash }}
-    #when: kubeadm_config.rc != 0

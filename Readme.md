@@ -131,6 +131,21 @@ TODO check after reboot -> /etc/sysctl.d/ipv6.conf
 
 In order to take direct effect run `sysctl --system`
 
+### IP forwarding
+
+TODO
+
+```bash
+sudo tee /etc/sysctl.d/vm.conf <<< ' net.ipv4.ip_forward = 1
+net.ipv6.ip_forward = 1
+net.ipv6.conf.all.forwarding = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1'
+```
+
+
+
+
 ## Setup libvirt
 
 See also: [KVM Ubuntu](https://help.ubuntu.com/community/KVM/Installation#Installation):

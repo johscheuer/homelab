@@ -12,6 +12,14 @@ We have the following dev setup:
 
 BaseOS will be Ubuntu focal (20.04) for all machines (maybe I change this later on to something different)
 
+## Setup local rout
+
+```bash
+sudo route -n add -net 172.16.0.0/24  192.168.0.25
+ping 172.16.0.174
+ping 172.16.0.174
+```
+
 ## Setup
 
 Before we can start we need to setup the VM's:
@@ -63,19 +71,117 @@ Pod Networks:
 
 *TODO*: we also activate endpoint slices for internal usage.
 
+-> https://github.com/kubernetes-sigs/ip-masq-agent
+
 ## Cluster Setup
 
-TBD -> setup with ansible (initial setup)
+### Conformance Test
 
+Install sonobouy for testing the conformance of the newly setup cluster:
+
+```bash
+curl -sLO https://github.com/vmware-tanzu/sonobuoy/releases/download/v0.18.3/sonobuoy_0.18.3_linux_amd64.tar.gz
+tar xfz sonobuoy_*
+rm sonobuoy_*
+sudo mv sonobuoy /usr/local/bin/
+```
+
+run the actual tests (more information can be found at [sonobouy](https://github.com/vmware-tanzu/sonobuoy#getting-started)):
+
+```bash
+sonobuoy run --wait
+results=$(sonobuoy retrieve)
+sonobuoy results $results
+```
+Clean up:
+
+```bash
+sonobuoy delete --wait
+```
+
+### Storage (Rook)
+
+For cluster storage we will use ceph deployed via rook:
+
+```bash
+git clone -b release-1.3 https://github.com/rook/rook.git
+cd rook/cluster/examples/kubernetes/ceph
+kubectl create -f common.yaml
+kubectl create -f operator.yaml
+kubectl -n rook-ceph get pod
+```
+
+In the first place we create a default ceph cluster:
+
+```bash
+kubectl create -f cluster.yaml
+```
+
+Deploy the rook [toolbox](https://rook.io/docs/rook/v1.3/ceph-toolbox.html):
+
+```bash
+kubectl apply -f toolbox.yaml
+```
+
+and use the toolbox to verify the status of the cluster:
+
+```bash
+kubectl -n rook-ceph exec -it $(kubectl -n rook-ceph get pod -l "app=rook-ceph-tools" -o jsonpath='{.items[0].metadata.name}') bash
+```
+
+ensure that the cluster is in a good state:
+
+```bash
+ceph status
+ceph osd status
+ceph df
+rados df
+```
+
+and now you can delete the toolbox:
+
+```bash
+kubectl delete -f toolbox.yaml
+```
+
+TODO deploy monitoring (with Prometheus: https://github.com/rook/rook/tree/release-1.3/cluster/examples/kubernetes/ceph + https://rook.io/docs/rook/v1.3/ceph-monitoring.html
+
+### Metallb and ingress
 
 --> metallb + ingress
---> Prometheus
---> Dualstack
---> Storage rook.io (Ceph)
+--> LB Pool TBD -> 172.16.1.0/24 + fd77:fe56:7891:2f3a::/112
+
+
+### Monitoring
+
+--> Prometheus (https://github.com/coreos/kube-prometheus)
+
+### Logging
+
+--> https://github.com/grafana/loki
 
 ## Testing
 
 ```bash
 sudo ip6tables -vL KUBE-SERVICES
+```
 
+--> https://kubernetes.io/docs/tasks/network/validate-dual-stack/syste
+
+kubectl get nodes master -o go-template --template='{{range .spec.podCIDRs}}{{printf "%s\n" .}}{{end}}'
+
+kubectl get nodes master -o go-template --template='{{range .status.addresses}}{{printf "%s: %s \n" .type .address}}{{end}}'
+
+
+
+```bash
+kubectl run  pod01 --image=busybox --command -- sleep 10000
+
+kubectl run  pod02 --image=busybox --command -- sleep 10000
+
+
+kubectl exec -it pod01 -- ip -o a s
+
+kubectl exec -it pod02 -- ping6 -c 4 $ipv6
+kubectl exec -it pod02 -- ping -c 4  $ipv4
 ```
