@@ -275,6 +275,18 @@ Connect to one of the VM's:
 ssh -J jscheuermann@192.168.0.242 root@172.16.0.39
 ```
 
+## Cleanup of Hypervisor
+
+Stop unused service `snapd`
+
+```bash
+sudo systemctl disable snapd
+```
+
+## Debugging tools
+
+Install the `sysstat` package.
+
 ## Further reading
 
 - [macos-kvm-remote-connect](https://johnsiu.com/blog/macos-kvm-remote-connect)
