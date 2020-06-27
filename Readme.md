@@ -131,7 +131,21 @@ net.ipv6.conf.all.accept_ra = '
 
 ### IP forwarding
 
-TODO
+Set the `sysctl` settings for packet forwarding (e.g. use tout Hypervisor as router):
+
+```bash
+sudo tee /etc/sysctl.d/vm.conf <<< 'net.ipv4.ip_forward = 1
+net.ipv6.ip_forward = 1
+net.ipv6.conf.all.forwarding = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1'
+```
+
+Set a forwarding rule:
+
+```bash
+iptables -I FORWARD -o k8snet-br -d 172.16.0.0/24 -j ACCEPT
+```
 
 ## Setup libvirt
 
