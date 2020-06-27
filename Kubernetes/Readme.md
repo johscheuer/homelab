@@ -12,12 +12,12 @@ We have the following dev setup:
 
 BaseOS will be Ubuntu focal (20.04) for all machines (maybe I change this later on to something different)
 
-## Setup local rout
+## Setup local route
+
+TODO docs
 
 ```bash
-sudo route -n add -net 172.16.0.0/24  192.168.0.25
-ping 172.16.0.174
-ping 172.16.0.174
+sudo route -n add -net 172.16.0.0/24 192.168.0.25
 ```
 
 ## Setup
@@ -151,6 +151,7 @@ TODO deploy monitoring (with Prometheus: https://github.com/rook/rook/tree/relea
 --> metallb + ingress
 --> LB Pool TBD -> 172.16.1.0/24 + fd77:fe56:7891:2f3a::/112
 
+https://github.com/kubernetes-sigs/ip-masq-agent
 
 ### Monitoring
 
@@ -185,3 +186,13 @@ kubectl exec -it pod01 -- ip -o a s
 kubectl exec -it pod02 -- ping6 -c 4 $ipv6
 kubectl exec -it pod02 -- ping -c 4  $ipv4
 ```
+
+## Further ideas
+
+--> https://metal-stack.io/
+--> https://github.com/kubevirt/kubevirt
+--> https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler
+--> https://kubernetes.io/docs/reference/access-authn-authz/node/
+--> https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#noderestriction
+--> https://github.com/open-policy-agent/gatekeeper
+--> maybe replace rook?

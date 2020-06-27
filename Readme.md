@@ -86,6 +86,7 @@ network:
       dhcp4: true
       dhcp6: true
       wakeonlan: true
+      accept-ra: true
   version: 2
 ```
 
@@ -114,6 +115,7 @@ network:
           password: "totalsecure"
       dhcp4: true
       dhcp6: true
+      accept-ra: true
 ```
 
 Apply the config: `sudo netplan --debug apply` and reload the systemd unit: `sudo systemctl daemon-reload` and finally restart the service: `sudo systemctl restart netplan-wpa-wlp58s0.service` and check that the network is up: `sudo systemctl status netplan-wpa-wlp58s0.service`
@@ -123,28 +125,13 @@ Apply the config: `sudo netplan --debug apply` and reload the systemd unit: `sud
 If you want to use IPv6 [stateless address autoconfiguration (slaac)](https://en.wikipedia.org/wiki/IPv6_address#Stateless_address_autoconfiguration) on the host and also run some virtual machines you need to modify the [accept_ra](https://www.kernel.org/doc/Documentation/networking/ip-sysctl.txt) value to `2`:
 
 ```bash
-sudo tee /etc/sysctl.d/ipv6.conf <<< 'net.ipv6.conf.eno1.accept_ra = 2
-net.ipv6.conf.wlp58s0.accept_ra = 2'
+sudo tee /etc/sysctl.d/ipv6.conf <<< 'net.ipv6.conf.all.forwarding = 1
+net.ipv6.conf.all.accept_ra = '
 ```
-
-TODO check after reboot -> /etc/sysctl.d/ipv6.conf
-
-In order to take direct effect run `sysctl --system`
 
 ### IP forwarding
 
 TODO
-
-```bash
-sudo tee /etc/sysctl.d/vm.conf <<< ' net.ipv4.ip_forward = 1
-net.ipv6.ip_forward = 1
-net.ipv6.conf.all.forwarding = 1
-net.bridge.bridge-nf-call-ip6tables = 1
-net.bridge.bridge-nf-call-iptables = 1'
-```
-
-
-
 
 ## Setup libvirt
 
