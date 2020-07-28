@@ -196,3 +196,5 @@ kubectl exec -it pod02 -- ping -c 4  $ipv4
 --> https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#noderestriction
 --> https://github.com/open-policy-agent/gatekeeper
 --> maybe replace rook?
+--> https://github.com/rancher/system-upgrade-controller
+-> https://github.com/oneinfra/oneinfra
