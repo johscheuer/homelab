@@ -2,15 +2,13 @@
 repo_update: true
 repo_upgrade: all
 package_upgrade: true
-
 hostname: ${hostname}
-
 packages:
   - apt-transport-https
   - util-linux
-  - [kubelet, "1.18.4-00"]
-  - [kubeadm, "1.18.4-00"]
-  - [kubectl, "1.18.4-00"]
+  - [kubelet, "${kubernetes_version}-00"]
+  - [kubeadm, "${kubernetes_version}-00"]
+  - [kubectl, "${kubernetes_version}-00"]
   - jq
   - ipset
   - libseccomp2

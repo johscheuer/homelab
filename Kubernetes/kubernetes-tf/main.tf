@@ -5,17 +5,17 @@ resource "libvirt_pool" "kubernetes" {
 }
 
 # We fetch the latest ubuntu release image from their mirrors
-resource "libvirt_volume" "ubuntu_base" {
-  name   = "ubuntu.qcow2"
+resource "libvirt_volume" "base" {
+  name   = "base.qcow2"
   pool   = libvirt_pool.kubernetes.name
-  source = "https://cloud-images.ubuntu.com/releases/focal/release/ubuntu-20.04-server-cloudimg-amd64-disk-kvm.img"
+  source = var.img_src
   format = "qcow2"
 }
 
 resource "libvirt_volume" "master" {
   name           = "master.qcow2"
   pool           = libvirt_pool.kubernetes.name
-  base_volume_id = libvirt_volume.ubuntu_base.id
+  base_volume_id = libvirt_volume.base.id
   format         = "qcow2"
   # 20GB
   size = 21474836480
@@ -25,7 +25,7 @@ resource "libvirt_volume" "worker" {
   count          = 3
   name           = "worker_${count.index}.qcow2"
   pool           = libvirt_pool.kubernetes.name
-  base_volume_id = libvirt_volume.ubuntu_base.id
+  base_volume_id = libvirt_volume.base.id
   format         = "qcow2"
   # 20GB
   size = 21474836480
@@ -39,34 +39,25 @@ resource "libvirt_volume" "worker_data" {
   size = 85899345920
 }
 
-// FIXME: (add as variable): kubernetes_version
-// FIXME: https://github.com/inovex/kubernetes-on-openstack/blob/master/scripts/master.cfg.tpl#L837
-data "template_file" "master_user_data" {
-  template = "${file("${path.module}/cloud_init.yml")}"
-    vars = {
-      hostname = "master"
-  }
-}
-
-data "template_file" "worker_user_data" {
-  count = 3
-  template = "${file("${path.module}/cloud_init.yml")}"
-  vars = {
-    hostname = "worker-${count.index}"
-  }
-}
-
 resource "libvirt_cloudinit_disk" "master_commoninit" {
-  name           = "master_commoninit.iso"
-  user_data      = data.template_file.master_user_data.rendered
-  pool           = libvirt_pool.kubernetes.name
+  name = "master_commoninit.iso"
+  user_data = templatefile("${path.module}/cloud_init.yml",
+    {
+      hostname           = "master",
+      kubernetes_version = var.kubernetes_version
+  })
+  pool = libvirt_pool.kubernetes.name
 }
 
 resource "libvirt_cloudinit_disk" "worker_commoninit" {
   count = 3
-  name           = "worker_${count.index}_commoninit.iso"
-  user_data      = element(data.template_file.worker_user_data.*.rendered, count.index)
-  pool           = libvirt_pool.kubernetes.name
+  name  = "worker_${count.index}_commoninit.iso"
+  user_data = templatefile("${path.module}/cloud_init.yml",
+    {
+      hostname           = "worker-${count.index}",
+      kubernetes_version = var.kubernetes_version
+  })
+  pool = libvirt_pool.kubernetes.name
 }
 
 # Create the machine
