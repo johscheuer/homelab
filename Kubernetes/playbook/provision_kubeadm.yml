@@ -31,32 +31,22 @@
     register: kubeadm
     when: kubeadm_config.rc != 0
 
-  # TODO check why ansible still runs these tasks if the config check returns a none zero
   - name: Set token for join command
     set_fact:
-      token: "{{ item }}"
-    with_items: "{{ kubeadm.stdout | regex_search('token (.*\\w)', multiline=True, ignorecase=True) | regex_replace('token ') }}"
+      token: "{{ kubeadm.stdout | regex_search('token (.*\\w)', multiline=True, ignorecase=True) | regex_replace('token ') }}"
+      ca_hash: "{{ kubeadm.stdout | regex_search('discovery-token-ca-cert-hash (.*\\w)', multiline=True, ignorecase=True) | regex_replace('discovery-token-ca-cert-hash ') }}"
+      api_server: "{{ kubeadm.stdout | regex_search('(\\d{0,3}\\.\\d{0,3}.\\d{0,3}.\\d{0,3}:\\d{4})') }}"
     when: kubeadm_config.rc != 0
 
-  - name: Set ca-cert-hash for join command
-    set_fact:
-      ca_hash: "{{ item }}"
-    with_items: "{{ kubeadm.stdout | regex_search('discovery-token-ca-cert-hash (.*\\w)', multiline=True, ignorecase=True) | regex_replace('discovery-token-ca-cert-hash ') }}"
-    when: kubeadm_config.rc != 0
-
-  - name: Set API server
-    set_fact:
-      api_server: "{{ item }}"
-    with_items: "{{ kubeadm.stdout | regex_search('(\\d{0,3}\\.\\d{0,3}.\\d{0,3}.\\d{0,3}:\\d{4})') }}"
-    when: kubeadm_config.rc != 0
-
-  - local_action:
+  - name: Create local information
+    local_action:
       module: copy
       content: |
         api_server: "{{ api_server }}"
         ca_hash: "{{ ca_hash }}"
         token: "{{ token }}"
       dest: ./vars/kubeadm.yml
+    when: kubeadm_config.rc != 0
 
   - name: Create .kube directory for kubeconfig
     file:
@@ -66,7 +56,6 @@
       group: ubuntu
       mode: '0775'
 
-# TODO copy kubeconfig locally
   - name: Copy admin.conf to local user
     become: yes
     copy:
@@ -77,12 +66,27 @@
       mode: '0500'
       remote_src: yes
 
-# TODO setup network (calico) copy + apply
+  - name: Fetch kubeconfig for local usage
+    fetch:
+      src: /home/ubuntu/.kube/config
+      dest: ./kube.config
+
+  - name: Copy calico config
+    become: yes
+    copy:
+      src: calico.yaml
+      dest: /home/ubuntu/calico.yaml
+      owner: ubuntu
+      group: ubuntu
+      mode: '0500'
+
+  - name: Install calico networking
+    shell: kubectl apply -f /home/ubuntu/calico.yaml
 
 - name: Initialize Kubbernetes worker
   hosts: worker
   tasks:
-  # TODO can we identify if the already have joined?
+  # TODO can we identify if the worker already has joined?
   - name: Load variables
     include_vars: ./vars/kubeadm.yml
 

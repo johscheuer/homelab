@@ -43,13 +43,19 @@ popd
 Check if all nodes are reachable:
 
 ```bas
-ansible --ssh-common-args='-J jscheuermann@192.168.0.242' -i ./inventory/kube-dev all -m ping
+ansible --ssh-common-args='-J jscheuermann@192.168.0.25' -i ./inventory/kube-dev all -m ping
 ```
 
 Finally we can provision the Kubernetes cluster with [Ansible](https://docs.ansible.com):
 
 ```bash
-ansible-playbook  --ssh-common-args='-J jscheuermann@192.168.0.242' -i ./inventory/kube-dev ./playbook/provision_kubeadm.yml
+ansible-playbook  --ssh-common-args='-J jscheuermann@192.168.0.25' -i ./inventory/kube-dev ./playbook/provision_kubeadm.yml
+```
+
+Connect to the master:
+
+```bash
+ssh -J jscheuermann@192.168.0.25 ubuntu@172.16.0.2
 ```
 
 ## Networking
@@ -93,6 +99,7 @@ sonobuoy run --wait
 results=$(sonobuoy retrieve)
 sonobuoy results $results
 ```
+
 Clean up:
 
 ```bash
@@ -167,25 +174,76 @@ https://github.com/kubernetes-sigs/ip-masq-agent
 sudo ip6tables -vL KUBE-SERVICES
 ```
 
---> https://kubernetes.io/docs/tasks/network/validate-dual-stack/syste
+### Nodes
 
+```bash
+# https://kubernetes.io/docs/tasks/network/validate-dual-stack/system
 kubectl get nodes master -o go-template --template='{{range .spec.podCIDRs}}{{printf "%s\n" .}}{{end}}'
 
 kubectl get nodes master -o go-template --template='{{range .status.addresses}}{{printf "%s: %s \n" .type .address}}{{end}}'
+```
+
+### Services
+
+```bash
+cat << EOF | kubectl apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 2 # tells deployment to run 2 pods matching the template
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80
+EOF
+
+cat << EOF | kubectl apply -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  ipFamily: IPv6
+  type: LoadBalancer
+  selector:
+    app: nginx
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+EOF
+```
 
 
+/Users/jscheuermann/go/src/k8s.io/kubernetes/pkg/apis/core/validation/conditional_validation.go
+
+### Communication
 
 ```bash
 kubectl run  pod01 --image=busybox --command -- sleep 10000
-
 kubectl run  pod02 --image=busybox --command -- sleep 10000
-
+``
 
 kubectl exec -it pod01 -- ip -o a s
 
 kubectl exec -it pod02 -- ping6 -c 4 $ipv6
 kubectl exec -it pod02 -- ping -c 4  $ipv4
 ```
+
+### Multi tenancy
 
 ## Further ideas
 

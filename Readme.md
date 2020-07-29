@@ -272,7 +272,7 @@ Create the VM's: `terraform apply`
 Connect to one of the VM's:
 
 ```bash
-ssh -J jscheuermann@192.168.0.242 root@172.16.0.39
+ssh -J jscheuermann@192.168.0.25 root@172.16.0.39
 ```
 
 ## Cleanup of Hypervisor

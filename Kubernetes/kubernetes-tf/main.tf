@@ -72,7 +72,10 @@ resource "libvirt_domain" "master" {
 
   network_interface {
     network_name   = libvirt_network.kube_network.name
-    wait_for_lease = true
+    hostname       = "master"
+    addresses      = ["172.16.0.2" ]  #, "fd4a:fc40:8cfb::2"]
+    mac            = "AA:BB:CC:11:22:10"
+    wait_for_lease = false
   }
 
   # IMPORTANT: this is a known bug on cloud images, since they expect a console
@@ -122,7 +125,10 @@ resource "libvirt_domain" "worker" {
 
   network_interface {
     network_name   = libvirt_network.kube_network.name
-    wait_for_lease = true
+    hostname       = "worker-${count.index}"
+    addresses      = ["172.16.0.1${count.index}"] #, "fd4a:fc40:8cfb::1${count.index}"]
+    mac            = "AA:BB:CC:11:22:2${count.index}"
+    wait_for_lease = false
   }
 
   # IMPORTANT: this is a known bug on cloud images, since they expect a console
