@@ -74,8 +74,7 @@ resource "libvirt_domain" "master" {
     network_name   = libvirt_network.kube_network.name
     hostname       = "master"
     addresses      = ["172.16.0.2" ]  #, "fd4a:fc40:8cfb::2"]
-    mac            = "AA:BB:CC:11:22:10"
-    wait_for_lease = false
+    wait_for_lease = true
   }
 
   # IMPORTANT: this is a known bug on cloud images, since they expect a console
@@ -109,8 +108,7 @@ resource "libvirt_domain" "worker" {
   memory     = "8192"
   vcpu       = 2
   qemu_agent = true
-  # FIXME move this into a variable
-  count     = 3
+  count     = var.count_worker
   autostart = true
 
   cloudinit = element(libvirt_cloudinit_disk.worker_commoninit.*.id, count.index)
@@ -127,8 +125,7 @@ resource "libvirt_domain" "worker" {
     network_name   = libvirt_network.kube_network.name
     hostname       = "worker-${count.index}"
     addresses      = ["172.16.0.1${count.index}"] #, "fd4a:fc40:8cfb::1${count.index}"]
-    mac            = "AA:BB:CC:11:22:2${count.index}"
-    wait_for_lease = false
+    wait_for_lease = true
   }
 
   # IMPORTANT: this is a known bug on cloud images, since they expect a console

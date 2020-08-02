@@ -15,6 +15,7 @@ packages:
   - containerd
   - chrony
   - unattended-upgrades
+  - qemu-guest-agent
 
 write_files:
 - content: |
@@ -82,3 +83,4 @@ growpart:
 runcmd:
 - "systemctl restart systemd-modules-load.service"
 - "sysctl --system"
+# todo add apt-mark
