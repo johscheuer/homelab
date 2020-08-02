@@ -32,11 +32,12 @@ terraform apply
 Now we can take the output as input for the ansible inventory:
 
 ```bash
-# TODO test ansible with IPv6 and add groups
 echo '[master]' > ../inventory/kube-dev
 terraform output --json master_ip | jq -r '.[][] | select(startswith("172")) + " ansible_user=ubuntu"' >> ../inventory/kube-dev
 echo '[worker]' >> ../inventory/kube-dev
 terraform output --json worker_ips | jq -r '.[][] | select(startswith("172")) + " ansible_user=ubuntu"' >> ../inventory/kube-dev
+# Set Kubernetes version from terraform
+sed "s/K8S_VER/v$(terraform output --json kubernetes_version | jq -r '.')/g" ../playbook/vars/default.yml.tmp > ../playbook/vars/default.yml
 popd
 ```
 

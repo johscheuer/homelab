@@ -1,6 +1,6 @@
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
-kubernetesVersion: v1.18.4
+kubernetesVersion: {{ kubernetes_version }}
 apiServer:
   certSANs:
   - localhost
@@ -8,11 +8,9 @@ apiServer:
   - ::1
   - {{ ansible_default_ipv4.address }}
   - {{ ansible_default_ipv6.address }}
-  # TODO add IP address of Hypervisor host
   extraArgs:
     feature-gates: IPv6DualStack=true
 clusterName: kube-dev
-# TODO change this to IPv6 ?
 controlPlaneEndpoint: {{ ansible_default_ipv4.address }}:6443
 featureGates:
   IPv6DualStack: true
@@ -23,7 +21,6 @@ networking:
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
 localAPIEndpoint:
-  # TODO change to IPv6 ?
   advertiseAddress: {{ ansible_default_ipv4.address }}
   bindPort: 6443
 ---

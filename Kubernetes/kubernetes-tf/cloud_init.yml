@@ -83,4 +83,4 @@ growpart:
 runcmd:
 - "systemctl restart systemd-modules-load.service"
 - "sysctl --system"
-# todo add apt-mark
+- apt-mark hold kubeadm kubectl kubelet

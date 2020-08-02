@@ -9,6 +9,6 @@ variable img_src {
 }
 
 variable count_worker {
-  type = number
+  type    = number
   default = 3
 }

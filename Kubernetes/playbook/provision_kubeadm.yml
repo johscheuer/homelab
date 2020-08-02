@@ -1,6 +1,9 @@
 - name: Initialize Kubbernetes master
   hosts: master
   tasks:
+  - name: Load variables
+    include_vars: ./vars/default.yml
+
   - name: Create kubeadm directory for config
     become: yes
     file:
@@ -83,7 +86,7 @@
   - name: Install calico networking
     shell: kubectl apply -f /home/ubuntu/calico.yaml
 
-- name: Initialize Kubbernetes worker
+- name: Initialize Kubernetes worker
   hosts: worker
   tasks:
   # TODO can we identify if the worker already has joined?

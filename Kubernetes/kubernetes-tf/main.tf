@@ -73,7 +73,7 @@ resource "libvirt_domain" "master" {
   network_interface {
     network_name   = libvirt_network.kube_network.name
     hostname       = "master"
-    addresses      = ["172.16.0.2" ]  #, "fd4a:fc40:8cfb::2"]
+    addresses      = ["172.16.0.2"] #, "fd4a:fc40:8cfb::2"]
     wait_for_lease = true
   }
 
@@ -108,8 +108,8 @@ resource "libvirt_domain" "worker" {
   memory     = "8192"
   vcpu       = 2
   qemu_agent = true
-  count     = var.count_worker
-  autostart = true
+  count      = var.count_worker
+  autostart  = true
 
   cloudinit = element(libvirt_cloudinit_disk.worker_commoninit.*.id, count.index)
 
@@ -156,4 +156,8 @@ output "master_ip" {
 
 output "worker_ips" {
   value = libvirt_domain.worker.*.network_interface.0.addresses
+}
+
+output "kubernetes_version" {
+  value = var.kubernetes_version
 }
