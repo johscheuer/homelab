@@ -75,9 +75,7 @@ Pod Networks:
 - IPv4: `192.168.0.0/16`
 - IPv6: `fd44:fe56:7891:2f3a::/64`
 
-*TODO*: we also activate endpoint slices for internal usage.
-
--> https://github.com/kubernetes-sigs/ip-masq-agent
+We also activate endpoint slices for internal usage (kube-proxy).
 
 ## Cluster Setup
 
@@ -111,20 +109,20 @@ sonobuoy delete --wait
 For cluster storage we will use ceph deployed via rook:
 
 ```bash
-git clone -b release-1.3 https://github.com/rook/rook.git
+git clone -b release-1.4 https://github.com/rook/rook.git
 cd rook/cluster/examples/kubernetes/ceph
 kubectl create -f common.yaml
 kubectl create -f operator.yaml
 kubectl -n rook-ceph get pod
 ```
 
-In the first place we create a default ceph cluster:
+In the first place we create a default ceph cluster (later on we will customize it):
 
 ```bash
 kubectl create -f cluster.yaml
 ```
 
-Deploy the rook [toolbox](https://rook.io/docs/rook/v1.3/ceph-toolbox.html):
+Deploy the rook [toolbox](https://rook.io/docs/rook/v1.4/ceph-toolbox.html):
 
 ```bash
 kubectl apply -f toolbox.yaml
@@ -133,7 +131,7 @@ kubectl apply -f toolbox.yaml
 and use the toolbox to verify the status of the cluster:
 
 ```bash
-kubectl -n rook-ceph exec -it $(kubectl -n rook-ceph get pod -l "app=rook-ceph-tools" -o jsonpath='{.items[0].metadata.name}') bash
+kubectl -n rook-ceph exec -it $(kubectl -n rook-ceph get pod -l "app=rook-ceph-tools" -o jsonpath='{.items[0].metadata.name}') -- bash
 ```
 
 ensure that the cluster is in a good state:
@@ -151,7 +149,47 @@ and now you can delete the toolbox:
 kubectl delete -f toolbox.yaml
 ```
 
-TODO deploy monitoring (with Prometheus: https://github.com/rook/rook/tree/release-1.3/cluster/examples/kubernetes/ceph + https://rook.io/docs/rook/v1.3/ceph-monitoring.html
+Setup Rook usage for Blockstorage:
+
+```bash
+# TODO move this file into the rook folder
+# TODO use erasure coded?
+cat << EOF | kubectl apply -f -
+apiVersion: ceph.rook.io/v1
+kind: CephBlockPool
+metadata:
+  name: k8s-default
+  namespace: rook-ceph
+spec:
+  failureDomain: host
+  replicated:
+    size: 3
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+   name: rook-ceph-block
+   annotations:
+     storageclass.kubernetes.io/is-default-class: "true"
+provisioner: rook-ceph.rbd.csi.ceph.com
+parameters:
+    clusterID: rook-cep
+    pool: k8s-default
+    imageFormat: "2"
+    imageFeatures: layering
+    # The secrets contain Ceph admin credentials.
+    csi.storage.k8s.io/provisioner-secret-name: rook-csi-rbd-provisioner
+    csi.storage.k8s.io/provisioner-secret-namespace: rook-ceph
+    csi.storage.k8s.io/node-stage-secret-name: rook-csi-rbd-node
+    csi.storage.k8s.io/node-stage-secret-namespace: rook-ceph
+    csi.storage.k8s.io/fstype: ext4
+# Delete the rbd volume when a PVC is deleted
+reclaimPolicy: Delete
+EOF
+# See also: kubectl create -f cluster/examples/kubernetes/ceph/csi/rbd/storageclass.yaml
+```
+
+--> TODO CephFS
 
 ### Metallb and ingress
 
@@ -162,7 +200,20 @@ https://github.com/kubernetes-sigs/ip-masq-agent
 
 ### Monitoring
 
---> Prometheus (https://github.com/coreos/kube-prometheus)
+docs -> Prometheus (https://github.com/coreos/kube-prometheus)
+
+```bash
+git clone -b release-0.5 https://github.com/coreos/kube-prometheus
+
+# TODO adjust replicas etc
+kubectl create -f manifests/setup
+until kubectl get servicemonitors --all-namespaces ; do date; sleep 1; echo ""; done
+kubectl create -f manifests/
+```
+
+TODO deploy monitoring (with Prometheus: https://github.com/rook/rook/tree/release-1.3/cluster/examples/kubernetes/ceph + https://rook.io/docs/rook/v1.3/ceph-monitoring.html
+
+--> https://github.com/kubernetes/node-problem-detector
 
 ### Logging
 
@@ -183,60 +234,12 @@ kubectl get nodes master -o go-template --template='{{range .spec.podCIDRs}}{{pr
 kubectl get nodes master -o go-template --template='{{range .status.addresses}}{{printf "%s: %s \n" .type .address}}{{end}}'
 ```
 
-### Services
-
-```bash
-cat << EOF | kubectl apply -f -
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-deployment
-spec:
-  selector:
-    matchLabels:
-      app: nginx
-  replicas: 2 # tells deployment to run 2 pods matching the template
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.14.2
-        ports:
-        - containerPort: 80
-EOF
-
-cat << EOF | kubectl apply -f -
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx
-  labels:
-    app: nginx
-spec:
-  ipFamily: IPv6
-  type: LoadBalancer
-  selector:
-    app: nginx
-  ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 80
-EOF
-```
-
-
-/Users/jscheuermann/go/src/k8s.io/kubernetes/pkg/apis/core/validation/conditional_validation.go
-
 ### Communication
 
 ```bash
 kubectl run  pod01 --image=busybox --command -- sleep 10000
 kubectl run  pod02 --image=busybox --command -- sleep 10000
-``
-
+# Check networking
 kubectl exec -it pod01 -- ip -o a s
 
 kubectl exec -it pod02 -- ping6 -c 4 $ipv6
@@ -256,3 +259,4 @@ kubectl exec -it pod02 -- ping -c 4  $ipv4
 --> maybe replace rook?
 --> https://github.com/rancher/system-upgrade-controller
 -> https://github.com/oneinfra/oneinfra
+-.

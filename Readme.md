@@ -147,6 +147,19 @@ Set a forwarding rule:
 iptables -I FORWARD -o k8snet-br -d 172.16.0.0/24 -j ACCEPT
 ```
 
+Install `iptables-persistent` to make the change persistent:
+
+```bash
+sudo apt-get install iptables-persistent
+```
+
+During the setup all rules will be persisted but you can also store the rules with the following command:
+
+```bash
+iptables-save > /etc/iptables/rules.v4
+ip6tables-save > /etc/iptables/rules.v6
+```
+
 ## Setup libvirt
 
 See also: [KVM Ubuntu](https://help.ubuntu.com/community/KVM/Installation#Installation):
