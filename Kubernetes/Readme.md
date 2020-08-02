@@ -59,6 +59,12 @@ Connect to the master:
 ssh -J jscheuermann@192.168.0.25 ubuntu@172.16.0.2
 ```
 
+or work remotely with:
+
+```bash
+export KUBECONFIG="$(pwd)/playbook/kube.config/172.16.0.2/home/ubuntu/.kube/config"
+```
+
 ## Networking
 
 Host Networks:
@@ -85,7 +91,7 @@ We also activate endpoint slices for internal usage (kube-proxy).
 Install sonobouy for testing the conformance of the newly setup cluster:
 
 ```bash
-curl -sLO https://github.com/vmware-tanzu/sonobuoy/releases/download/v0.18.3/sonobuoy_0.18.3_linux_amd64.tar.gz
+curl -sLO https://github.com/vmware-tanzu/sonobuoy/releases/download/v0.18.4/sonobuoy_0.18.4_linux_amd64.tar.gz
 tar xfz sonobuoy_*
 rm sonobuoy_*
 sudo mv sonobuoy /usr/local/bin/
@@ -105,27 +111,58 @@ Clean up:
 sonobuoy delete --wait
 ```
 
+### Monitoring
+
+The Prometheus setup is inspired by [kube-prometheus](https://github.com/coreos/kube-prometheus):
+
+```bash
+git clone -b release-0.6 https://github.com/coreos/kube-prometheus
+cd kube-prometheus
+kubectl create -f manifests/setup
+sed -i 's/replicas: 3/replicas: 1/g' manifests/alertmanager-alertmanager.yaml
+sed -i 's/replicas: 2/replicas: 1/g' ./manifests/prometheus-prometheus.yaml
+
+kubectl create -f manifests/
+```
+
+Check the installation:
+
+```bash
+kubectl top nodes
+```
+
+Ingress will be setup later but we can already use `kubectl -n monitoring port-forward`.
+We still need to fix the following two alerts: `KubeControllerManagerDown` and `KubeSchedulerDown`.
+Just run `kubectl apply -f ./prometheus` to adjust the services.
+
+Install the [node-problem-detector](https://github.com/kubernetes/node-problem-detector):
+
+```bash
+# TODO add toleration for master
+# Review settings: https://github.com/kubernetes/node-problem-detector#usage
+kubectl  apply -f ./npd/
+```
+
 ### Storage (Rook)
 
 For cluster storage we will use ceph deployed via rook:
 
 ```bash
-git clone -b release-1.4 https://github.com/rook/rook.git
-cd rook/cluster/examples/kubernetes/ceph
-kubectl create -f common.yaml
-kubectl create -f operator.yaml
+kubectl create -f rook/common.yaml
+kubectl create -f rook/operator.yaml
 kubectl -n rook-ceph get pod
 ```
 
 In the first place we create a default ceph cluster (later on we will customize it):
 
 ```bash
-kubectl create -f cluster.yaml
+kubectl create -f rook/cluster.yaml
 ```
 
 Deploy the rook [toolbox](https://rook.io/docs/rook/v1.4/ceph-toolbox.html):
 
 ```bash
+# TODO
 kubectl apply -f toolbox.yaml
 ```
 
@@ -199,23 +236,6 @@ EOF
 
 https://github.com/kubernetes-sigs/ip-masq-agent
 
-### Monitoring
-
-docs -> Prometheus (https://github.com/coreos/kube-prometheus)
-
-```bash
-git clone -b release-0.5 https://github.com/coreos/kube-prometheus
-
-# TODO adjust replicas etc
-kubectl create -f manifests/setup
-until kubectl get servicemonitors --all-namespaces ; do date; sleep 1; echo ""; done
-kubectl create -f manifests/
-```
-
-TODO deploy monitoring (with Prometheus: https://github.com/rook/rook/tree/release-1.3/cluster/examples/kubernetes/ceph + https://rook.io/docs/rook/v1.3/ceph-monitoring.html
-
---> https://github.com/kubernetes/node-problem-detector
-
 ### Logging
 
 --> https://github.com/grafana/loki
@@ -251,13 +271,13 @@ kubectl exec -it pod02 -- ping -c 4  $ipv4
 
 ## Further ideas
 
---> https://metal-stack.io/
---> https://github.com/kubevirt/kubevirt
---> https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler
---> https://kubernetes.io/docs/reference/access-authn-authz/node/
---> https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#noderestriction
---> https://github.com/open-policy-agent/gatekeeper
---> maybe replace rook?
---> https://github.com/rancher/system-upgrade-controller
+-> https://metal-stack.io/
+-> https://github.com/kubevirt/kubevirt
+-> https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler
+-> https://kubernetes.io/docs/reference/access-authn-authz/node/
+-> https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#noderestriction
+-> https://github.com/open-policy-agent/gatekeeper
+-> maybe replace rook?
+-> https://github.com/rancher/system-upgrade-controller
 -> https://github.com/oneinfra/oneinfra
--.
+-> https://github.com/kubernetes/node-problem-detector#remedy-systems

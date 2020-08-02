@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    k8s-app: kube-controller-manager
+  name: kube-controller-manager
+  namespace: kube-system
+spec:
+  ipFamily: IPv4
+  ports:
+  - name: https-metrics
+    port: 10257
+    protocol: TCP
+    targetPort: 10257
+  type: ClusterIP
+  selector:
+    component: kube-controller-manager

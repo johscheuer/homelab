@@ -17,6 +17,8 @@ featureGates:
 networking:
   podSubnet: 192.168.0.0/16,fd44:fe56:7891:2f3a::/64
   serviceSubnet: 10.96.0.0/12,fd99:fe56:7891:2f3a::/112
+# TODO set ccontroller and scheduler bindAddres to the host address
+# oherwise Prometheus can't scrape the metrics
 ---
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: InitConfiguration
