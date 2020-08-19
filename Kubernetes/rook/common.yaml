@@ -159,7 +159,6 @@ spec:
                 storageClassDeviceSets: {}
             driveGroups:
               type: array
-              nullable: true
               items:
                 properties:
                   name:
@@ -320,6 +319,8 @@ spec:
               properties:
                 failureDomain:
                   type: string
+                crushRoot:
+                  type: string
                 replicated:
                   properties:
                     size:
@@ -351,6 +352,8 @@ spec:
               items:
                 properties:
                   failureDomain:
+                    type: string
+                  crushRoot:
                     type: string
                   replicated:
                     properties:
@@ -476,6 +479,8 @@ spec:
               properties:
                 failureDomain:
                   type: string
+                crushRoot:
+                  type: string
                 replicated:
                   properties:
                     size:
@@ -501,6 +506,8 @@ spec:
             dataPool:
               properties:
                 failureDomain:
+                  type: string
+                crushRoot:
                   type: string
                 replicated:
                   properties:
@@ -634,6 +641,8 @@ spec:
           properties:
             failureDomain:
                 type: string
+            crushRoot:
+                type: string
             replicated:
               properties:
                 size:
@@ -662,6 +671,10 @@ spec:
               - passive
               - aggressive
               - force
+            enableRBDStats:
+              description: EnableRBDStats is used to enable gathering of statistics
+                for all RBD images in the pool
+              type: boolean
             parameters:
               type: object
   subresources:
@@ -752,20 +765,6 @@ subjects:
 # OLM: END OBJECTBUCKET ROLEBINDING
 # OLM: BEGIN OPERATOR ROLE
 ---
-# The cluster role for managing all the cluster-specific resources in a namespace
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRole
-metadata:
-  name: rook-ceph-cluster-mgmt
-  labels:
-    operator: rook
-    storage-backend: ceph
-aggregationRule:
-  clusterRoleSelectors:
-  - matchLabels:
-      rbac.ceph.rook.io/aggregate-to-rook-ceph-cluster-mgmt: "true"
-rules: []
----
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -795,14 +794,14 @@ roleRef:
   name: rook-ceph-admission-controller-role
   apiGroup: rbac.authorization.k8s.io
 ---
+# The cluster role for managing all the cluster-specific resources in a namespace
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
-  name: rook-ceph-cluster-mgmt-rules
+  name: rook-ceph-cluster-mgmt
   labels:
     operator: rook
     storage-backend: ceph
-    rbac.ceph.rook.io/aggregate-to-rook-ceph-cluster-mgmt: "true"
 rules:
 - apiGroups:
   - ""
@@ -878,20 +877,6 @@ metadata:
   labels:
     operator: rook
     storage-backend: ceph
-aggregationRule:
-  clusterRoleSelectors:
-  - matchLabels:
-      rbac.ceph.rook.io/aggregate-to-rook-ceph-global: "true"
-rules: []
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRole
-metadata:
-  name: rook-ceph-global-rules
-  labels:
-    operator: rook
-    storage-backend: ceph
-    rbac.ceph.rook.io/aggregate-to-rook-ceph-global: "true"
 rules:
 - apiGroups:
   - ""
@@ -1003,20 +988,6 @@ metadata:
   labels:
     operator: rook
     storage-backend: ceph
-aggregationRule:
-  clusterRoleSelectors:
-  - matchLabels:
-      rbac.ceph.rook.io/aggregate-to-rook-ceph-mgr-cluster: "true"
-rules: []
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1beta1
-metadata:
-  name: rook-ceph-mgr-cluster-rules
-  labels:
-    operator: rook
-    storage-backend: ceph
-    rbac.ceph.rook.io/aggregate-to-rook-ceph-mgr-cluster: "true"
 rules:
 - apiGroups:
   - ""
@@ -1046,7 +1017,6 @@ metadata:
   labels:
     operator: rook
     storage-backend: ceph
-    rbac.ceph.rook.io/aggregate-to-rook-ceph-mgr-cluster: "true"
 rules:
 - apiGroups:
   - ""
@@ -1192,18 +1162,6 @@ kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: rook-ceph-mgr-system
-aggregationRule:
-  clusterRoleSelectors:
-  - matchLabels:
-      rbac.ceph.rook.io/aggregate-to-rook-ceph-mgr-system: "true"
-rules: []
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1beta1
-metadata:
-  name: rook-ceph-mgr-system-rules
-  labels:
-      rbac.ceph.rook.io/aggregate-to-rook-ceph-mgr-system: "true"
 rules:
 - apiGroups:
   - ""
@@ -1596,18 +1554,6 @@ kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: cephfs-csi-nodeplugin
-aggregationRule:
-  clusterRoleSelectors:
-  - matchLabels:
-      rbac.ceph.rook.io/aggregate-to-cephfs-csi-nodeplugin: "true"
-rules: []
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: cephfs-csi-nodeplugin-rules
-  labels:
-    rbac.ceph.rook.io/aggregate-to-cephfs-csi-nodeplugin: "true"
 rules:
   - apiGroups: [""]
     resources: ["nodes"]
@@ -1629,18 +1575,6 @@ kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: cephfs-external-provisioner-runner
-aggregationRule:
-  clusterRoleSelectors:
-  - matchLabels:
-      rbac.ceph.rook.io/aggregate-to-cephfs-external-provisioner-runner: "true"
-rules: []
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: cephfs-external-provisioner-runner-rules
-  labels:
-    rbac.ceph.rook.io/aggregate-to-cephfs-external-provisioner-runner: "true"
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -1657,6 +1591,24 @@ rules:
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["list", "watch", "create", "update", "patch"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotcontents"]
+    verbs: ["create", "get", "list", "watch", "update", "delete"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotcontents/status"]
+    verbs: ["update"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["create", "list", "watch", "delete", "get", "update"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots/status"]
+    verbs: ["update"]
   - apiGroups: ["storage.k8s.io"]
     resources: ["volumeattachments"]
     verbs: ["get", "list", "watch", "update", "patch"]
@@ -1776,18 +1728,6 @@ kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: rbd-csi-nodeplugin
-aggregationRule:
-  clusterRoleSelectors:
-  - matchLabels:
-      rbac.ceph.rook.io/aggregate-to-rbd-csi-nodeplugin: "true"
-rules: []
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: rbd-csi-nodeplugin-rules
-  labels:
-    rbac.ceph.rook.io/aggregate-to-rbd-csi-nodeplugin: "true"
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -1812,18 +1752,6 @@ kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: rbd-external-provisioner-runner
-aggregationRule:
-  clusterRoleSelectors:
-  - matchLabels:
-      rbac.ceph.rook.io/aggregate-to-rbd-external-provisioner-runner: "true"
-rules: []
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: rbd-external-provisioner-runner-rules
-  labels:
-    rbac.ceph.rook.io/aggregate-to-rbd-external-provisioner-runner: "true"
 rules:
   - apiGroups: [""]
     resources: ["secrets"]

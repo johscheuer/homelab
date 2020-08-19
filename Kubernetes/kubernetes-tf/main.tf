@@ -106,7 +106,7 @@ resource "libvirt_domain" "master" {
 resource "libvirt_domain" "worker" {
   name       = "worker-${count.index}"
   memory     = "8192"
-  vcpu       = 2
+  vcpu       = 4
   qemu_agent = true
   count      = var.count_worker
   autostart  = true

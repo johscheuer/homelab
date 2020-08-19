@@ -5,10 +5,10 @@ We have the following dev setup:
 | name | vCPU | RAM | root disk | data disk |
 |:-:|:-:|---|---|---|
 | master | 2 | 4GB | 20GB | - |
-| worker-0 | 2 | 8GB | 20GB | 80GB |
-| worker-1 | 2 | 8GB | 20GB | 80GB |
-| worker-2 | 2 | 8GB | 20GB | 80GB |
-| total | 8 | 28GB | 80GB | 240GB (320GB total with root) |
+| worker-0 | 4 | 8GB | 20GB | 80GB |
+| worker-1 | 4 | 8GB | 20GB | 80GB |
+| worker-2 | 4 | 8GB | 20GB | 80GB |
+| total | 14 | 28GB | 80GB | 240GB (320GB total with root) |
 
 BaseOS will be Ubuntu focal (20.04) for all machines (maybe I change this later on to something different)
 
@@ -162,8 +162,7 @@ kubectl create -f rook/cluster.yaml
 Deploy the rook [toolbox](https://rook.io/docs/rook/v1.4/ceph-toolbox.html):
 
 ```bash
-# TODO
-kubectl apply -f toolbox.yaml
+kubectl apply -f ./rook/toolbox.yaml
 ```
 
 and use the toolbox to verify the status of the cluster:
@@ -190,40 +189,7 @@ kubectl delete -f toolbox.yaml
 Setup Rook usage for Blockstorage:
 
 ```bash
-# TODO move this file into the rook folder
-# TODO use erasure coded?
-cat << EOF | kubectl apply -f -
-apiVersion: ceph.rook.io/v1
-kind: CephBlockPool
-metadata:
-  name: k8s-default
-  namespace: rook-ceph
-spec:
-  failureDomain: host
-  replicated:
-    size: 3
----
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-   name: rook-ceph-block
-   annotations:
-     storageclass.kubernetes.io/is-default-class: "true"
-provisioner: rook-ceph.rbd.csi.ceph.com
-parameters:
-    clusterID: rook-cep
-    pool: k8s-default
-    imageFormat: "2"
-    imageFeatures: layering
-    # The secrets contain Ceph admin credentials.
-    csi.storage.k8s.io/provisioner-secret-name: rook-csi-rbd-provisioner
-    csi.storage.k8s.io/provisioner-secret-namespace: rook-ceph
-    csi.storage.k8s.io/node-stage-secret-name: rook-csi-rbd-node
-    csi.storage.k8s.io/node-stage-secret-namespace: rook-ceph
-    csi.storage.k8s.io/fstype: ext4
-# Delete the rbd volume when a PVC is deleted
-reclaimPolicy: Delete
-EOF
+kubectl apply -f ./rook/storageclass.yaml
 # See also: kubectl create -f cluster/examples/kubernetes/ceph/csi/rbd/storageclass.yaml
 ```
 
