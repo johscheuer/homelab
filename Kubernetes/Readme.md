@@ -14,8 +14,6 @@ BaseOS will be Ubuntu focal (20.04) for all machines (maybe I change this later 
 
 ## Setup local route
 
-TODO docs
-
 ```bash
 sudo route -n add -net 172.16.0.0/24 192.168.0.25
 ```
@@ -111,6 +109,14 @@ Clean up:
 sonobuoy delete --wait
 ```
 
+### Storage (Longhorn)
+
+For cluster storage we will use [longhorn](https://longhorn.io/):
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.0.2/deploy/longhorn.yaml
+```
+
 ### Monitoring
 
 The Prometheus setup is inspired by [kube-prometheus](https://github.com/coreos/kube-prometheus):
@@ -142,58 +148,6 @@ Install the [node-problem-detector](https://github.com/kubernetes/node-problem-d
 # Review settings: https://github.com/kubernetes/node-problem-detector#usage
 kubectl  apply -f ./npd/
 ```
-
-### Storage (Rook)
-
-For cluster storage we will use ceph deployed via rook:
-
-```bash
-kubectl create -f rook/common.yaml
-kubectl create -f rook/operator.yaml
-kubectl -n rook-ceph get pod
-```
-
-In the first place we create a default ceph cluster (later on we will customize it):
-
-```bash
-kubectl create -f rook/cluster.yaml
-```
-
-Deploy the rook [toolbox](https://rook.io/docs/rook/v1.4/ceph-toolbox.html):
-
-```bash
-kubectl apply -f ./rook/toolbox.yaml
-```
-
-and use the toolbox to verify the status of the cluster:
-
-```bash
-kubectl -n rook-ceph exec -it $(kubectl -n rook-ceph get pod -l "app=rook-ceph-tools" -o jsonpath='{.items[0].metadata.name}') -- bash
-```
-
-ensure that the cluster is in a good state:
-
-```bash
-ceph status
-ceph osd status
-ceph df
-rados df
-```
-
-and now you can delete the toolbox:
-
-```bash
-kubectl delete -f toolbox.yaml
-```
-
-Setup Rook usage for Blockstorage:
-
-```bash
-kubectl apply -f ./rook/storageclass.yaml
-# See also: kubectl create -f cluster/examples/kubernetes/ceph/csi/rbd/storageclass.yaml
-```
-
---> TODO CephFS
 
 ### Metallb and ingress
 

@@ -96,3 +96,29 @@
   - name: Run kubeadm join
     become: yes
     shell: kubeadm join {{ api_server }} --token {{ token }} --discovery-token-ca-cert-hash {{ ca_hash }}
+
+  - name: Create a new primary partition
+    become: true
+    parted:
+      device: /dev/vdb
+      number: 1
+      state: present
+
+  - name: Create a xfs filesystem on /dev/vdb1
+    become: true
+    filesystem:
+      fstype: xfs
+      dev: /dev/vdb1
+
+  - name: Create longhorn dir
+    file:
+      path: /var/lib/longhorn
+      state: directory
+
+  - name: Mount xfs into longhorn dir
+    become: true
+    mount:
+      path: /var/lib/longhorn
+      src: /dev/vdb1
+      fstype: xfs
+      state: present

@@ -16,7 +16,6 @@ packages:
   - chrony
   - unattended-upgrades
   - qemu-guest-agent
-
 write_files:
 - content: |
     net.ipv4.ip_forward = 1

@@ -1,6 +1,6 @@
 variable kubernetes_version {
   type    = string
-  default = "1.18.6"
+  default = "1.19.0"
 }
 
 variable img_src {

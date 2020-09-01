@@ -4,7 +4,6 @@ resource "libvirt_pool" "kubernetes" {
   path = "/etc/kubernetes-libvirt-pool"
 }
 
-# We fetch the latest ubuntu release image from their mirrors
 resource "libvirt_volume" "base" {
   name   = "base.qcow2"
   pool   = libvirt_pool.kubernetes.name
@@ -30,7 +29,7 @@ resource "libvirt_volume" "worker" {
   # 20GB
   size = 21474836480
 }
-// Data disk used for Ceph
+// Data disk used for Storage
 resource "libvirt_volume" "worker_data" {
   count = 3
   name  = "worker_data_${count.index}.qcow2"
