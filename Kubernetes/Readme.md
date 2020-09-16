@@ -117,6 +117,20 @@ For cluster storage we will use [longhorn](https://longhorn.io/):
 kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.0.2/deploy/longhorn.yaml
 ```
 
+Set longhorn to be the default storage class:
+
+```bash
+kubectl patch storageclass longhorn -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+```
+
+In order to access the longhorn ui run the following command:
+
+```bash
+kubectl -n longhorn-system port-forward svc/longhorn-frontend 8000:80
+```
+
+and go to [http://localhost:8000](http://localhost:8000).
+
 ### Monitoring
 
 The Prometheus setup is inspired by [kube-prometheus](https://github.com/coreos/kube-prometheus):
@@ -131,15 +145,23 @@ sed -i 's/replicas: 2/replicas: 1/g' ./manifests/prometheus-prometheus.yaml
 kubectl create -f manifests/
 ```
 
-Check the installation:
+Create the services for the Prometheus service monitor of the `kube-controller-manager` and the `kube-sccheduler`:
+
+```bash
+# TODO we also need to expose the metrics
+kubectl create -f ./prometheus/
+```
+
+Check the installation (this may take a short moment until metrics are gathered):
 
 ```bash
 kubectl top nodes
 ```
 
-Ingress will be setup later but we can already use `kubectl -n monitoring port-forward`.
-We still need to fix the following two alerts: `KubeControllerManagerDown` and `KubeSchedulerDown`.
-Just run `kubectl apply -f ./prometheus` to adjust the services.
+Ingress will be setup later but we can already use:
+
+- For Grafana: `kubectl -n monitoring port-forward svc/grafana 3000:3000`
+- For Prometheus: `kubectl -n monitoring port-forward svc/prometheus-k8s 9090:9090`
 
 Install the [node-problem-detector](https://github.com/kubernetes/node-problem-detector):
 
@@ -191,13 +213,8 @@ kubectl exec -it pod02 -- ping -c 4  $ipv4
 
 ## Further ideas
 
--> https://metal-stack.io/
--> https://github.com/kubevirt/kubevirt
--> https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler
--> https://kubernetes.io/docs/reference/access-authn-authz/node/
--> https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#noderestriction
--> https://github.com/open-policy-agent/gatekeeper
--> maybe replace rook?
--> https://github.com/rancher/system-upgrade-controller
--> https://github.com/oneinfra/oneinfra
--> https://github.com/kubernetes/node-problem-detector#remedy-systems
+- https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler
+- https://kubernetes.io/docs/reference/access-authn-authz/node/
+- https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#noderestriction
+- https://github.com/open-policy-agent/gatekeeper
+- https://github.com/kubernetes/node-problem-detector#remedy-systems

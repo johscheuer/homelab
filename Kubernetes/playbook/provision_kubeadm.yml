@@ -111,6 +111,7 @@
       dev: /dev/vdb1
 
   - name: Create longhorn dir
+    become: true
     file:
       path: /var/lib/longhorn
       state: directory
@@ -121,4 +122,4 @@
       path: /var/lib/longhorn
       src: /dev/vdb1
       fstype: xfs
-      state: present
+      state: mounted
