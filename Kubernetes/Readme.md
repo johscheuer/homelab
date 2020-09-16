@@ -145,7 +145,7 @@ sed -i 's/replicas: 2/replicas: 1/g' ./manifests/prometheus-prometheus.yaml
 kubectl create -f manifests/
 ```
 
-Create the services for the Prometheus service monitor of the `kube-controller-manager` and the `kube-sccheduler`:
+Create the services for the Prometheus service monitor of the `kube-controller-manager` and the `kube-scheduler`:
 
 ```bash
 # TODO we also need to expose the metrics
